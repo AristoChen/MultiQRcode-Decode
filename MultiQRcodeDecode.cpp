@@ -37,7 +37,6 @@ double angle(CvPoint* pt1, CvPoint* pt2, CvPoint* pt0)
 // the sequence is stored in the specified memory storage
 CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
 {
-
     CvSeq* contours;
     int i, c, l, N = 11;
     CvSize sz = cvSize( img->width & -2, img->height & -2 );
@@ -195,66 +194,63 @@ void drawSquares( IplImage* img, CvSeq* squares )
 	cvReleaseImage( &cpy );
 }
 
+//sort points in order to warp the perdpective properly 
+//with sequence of up-left, up-right, down-right, down-left
 void PointSort()
 {
 	int Sum = 0, Sub = 0;
 
+	//the point with smallest value(x plus y)  will be the up-left point
 	Sum = pt[0].x + pt[0].y;
-		pt_sorted[0] = pt[0];
-		for(int j=1; j<4; j++)
+	pt_sorted[0] = pt[0];
+	for(int j=1; j<4; j++)
+	{
+		if(pt[j].x + pt[j].y < Sum)
 		{
-			if(pt[j].x + pt[j].y < Sum)
-			{
-				Sum = pt[j].x + pt[j].y;
-				pt_sorted[0] = pt[j];
-			}
+			Sum = pt[j].x + pt[j].y;
+			pt_sorted[0] = pt[j];
 		}
+	}
 
-		Sub = pt[0].y - pt[0].x;
-		pt_sorted[1] = pt[0]; 
-		for(int j=1; j<4; j++)
+	//the point with the largest value(x minus y) will be the up-right point
+	Sub = pt[0].y - pt[0].x;
+	pt_sorted[1] = pt[0]; 
+	for(int j=1; j<4; j++)
+	{
+		if(pt[j].y - pt[j].x < Sub)
 		{
-			if(pt[j].y - pt[j].x < Sub)
-			{
-				Sub = pt[j].y - pt[j].x;
-				pt_sorted[1] = pt[j];
-			}
+			Sub = pt[j].y - pt[j].x;
+			pt_sorted[1] = pt[j];
 		}
+	}
 
-
-		Sum = pt[0].x + pt[0].y;
-		pt_sorted[2] = pt[0];
-		for(int j=1; j<4; j++)
+	//the point with the largest value(x plus y) will be the down-right point
+	Sum = pt[0].x + pt[0].y;
+	pt_sorted[2] = pt[0];
+	for(int j=1; j<4; j++)
+	{
+		if(pt[j].x + pt[j].y > Sum)
 		{
-			if(pt[j].x + pt[j].y > Sum)
-			{
-				Sum = pt[j].x + pt[j].y;
-				pt_sorted[2] = pt[j];
-			}
+			Sum = pt[j].x + pt[j].y;
+			pt_sorted[2] = pt[j];
 		}
+	}
 	
-		Sub = pt[0].y - pt[0].x;
-		pt_sorted[3] = pt[0]; 
-		for(int j=1; j<4; j++)
+	//the point with the smallest value(x minus y) will be the down-left point
+	Sub = pt[0].y - pt[0].x;
+	pt_sorted[3] = pt[0]; 
+	for(int j=1; j<4; j++)
+	{
+		if(pt[j].y - pt[j].x > Sub)
 		{
-			if(pt[j].y - pt[j].x > Sub)
-			{
-				Sub = pt[j].y - pt[j].x;
-				pt_sorted[3] = pt[j];
-			}
+			Sub = pt[j].y - pt[j].x;
+			pt_sorted[3] = pt[j];
 		}
-
-		/*cout << pt[0].x << " " << pt[0].y << " ";
-		cout << pt[1].x << " " << pt[1].y << " ";
-		cout << pt[2].x << " " << pt[2].y << " "; 
-		cout << pt[3].x << " " << pt[3].y << endl;
-		cout << pt_sorted[0].x << " " << pt_sorted[0].y << " ";
-		cout << pt_sorted[1].x << " " << pt_sorted[1].y << " ";
-		cout << pt_sorted[2].x << " " << pt_sorted[2].y << " ";
-		cout << pt_sorted[3].x << " " << pt_sorted[3].y << endl << endl;	*/
-		
+	}		
 }
 
+
+//warp the perspective in order to crop the image that contains QRcode only
 IplImage* WarpPerspective(IplImage* input)
 {
 	IplImage* output;
@@ -278,21 +274,13 @@ IplImage* WarpPerspective(IplImage* input)
 	mmat = cvGetPerspectiveTransform(c1, c2, mmat);
     cvWarpPerspective(input, output, mmat);
 
-	/*cout << pt[0].x << " " << pt[0].y << " ";
-	cout << pt[1].x << " " << pt[1].y << " ";
-	cout << pt[2].x << " " << pt[2].y << " "; 
-	cout << pt[3].x << " " << pt[3].y << endl;
-	cout << pt_sorted[0].x << " " << pt_sorted[0].y << " ";
-	cout << pt_sorted[1].x << " " << pt_sorted[1].y << " ";
-	cout << pt_sorted[2].x << " " << pt_sorted[2].y << " ";
-	cout << pt_sorted[3].x << " " << pt_sorted[3].y << endl << endl;*/
-
 	cvShowImage("Original", input);
 	cvShowImage("Warp", output);
 
 	return output;
 }
 
+//crop the image that only contains QRcode
 IplImage* imageROI(IplImage* warp_img)
 {
 	IplImage* warp_img_ROI;
@@ -307,44 +295,44 @@ IplImage* imageROI(IplImage* warp_img)
 	return warp_img_ROI;
 }
 
- 
+//decode for QRcode 
 void QRcode_Decode(IplImage* warp_img_ROI)
 {
 	ImageScanner scanner;    
 	scanner.set_config(ZBAR_NONE, ZBAR_CFG_ENABLE, 1);   
     
-    Mat img_ROI = cvarrToMat(warp_img_ROI);  
-	//cvResetImageROI(warp_img_ROI);
+	Mat img_ROI = cvarrToMat(warp_img_ROI);  
+	
 	Mat imgout;
 	cvtColor(img_ROI,img_ROI,CV_RGB2GRAY);
-	//threshold(img_ROI, img_ROI, 127, 255, CV_THRESH_BINARY);
+	
 
-    imgout = img_ROI;
+	imgout = img_ROI;
     
-    string qrcode_data;
+	string qrcode_data;
 	int width = img_ROI.cols;    
-    int height = img_ROI.rows;    
-    uchar *raw = (uchar *)img_ROI.data;       
-    Image image(width, height, "Y800", raw, width * height);      
-    int n = scanner.scan(image);      
-    for(Image::SymbolIterator symbol = image.symbol_begin();symbol != image.symbol_end();++symbol)  
-    {    
-        vector<Point> vp;    
-        cout<<"Decoded¡G"<<endl<<symbol->get_type_name()<<endl<<endl;  
-        cout<<"Symbol¡G"<<endl<<symbol->get_data()<<endl<<endl;           
-        int n = symbol->get_location_size();    
-        for(int i=0;i<n;i++)  
-        {    
-            vp.push_back(Point(symbol->get_location_x(i),symbol->get_location_y(i)));   
-        }    
-        RotatedRect r = minAreaRect(vp);    
-        Point2f pts[4];    
-        r.points(pts);    
-        Point textPoint(pts[1]);  
-        qrcode_data=symbol->get_data();  
+	int height = img_ROI.rows;    
+	uchar *raw = (uchar *)img_ROI.data;       
+	Image image(width, height, "Y800", raw, width * height);      
+	int n = scanner.scan(image);      
+	for(Image::SymbolIterator symbol = image.symbol_begin();symbol != image.symbol_end();++symbol)  
+	{    
+		vector<Point> vp;    
+		cout<<"Decoded¡G"<<endl<<symbol->get_type_name()<<endl<<endl;  
+		cout<<"Symbol¡G"<<endl<<symbol->get_data()<<endl<<endl;           
+		int n = symbol->get_location_size();    
+		for(int i=0;i<n;i++)  
+		{    
+			vp.push_back(Point(symbol->get_location_x(i),symbol->get_location_y(i)));   
+		}    
+		RotatedRect r = minAreaRect(vp);    
+		Point2f pts[4];    
+		r.points(pts);    
+		Point textPoint(pts[1]);  
+		qrcode_data=symbol->get_data();  
       
-        cout<<"Angle: "<<r.angle<<endl;   
-		
+		cout<<"Angle: "<<r.angle<<endl;   
+		//put the decoded text at the up left corner of the QRcode
 		putText(cvarrToMat(img),qrcode_data,pt_sorted[0],FONT_HERSHEY_COMPLEX,1,Scalar(0,0,255),1,8,false);
     }    
 	//zbar_image_scanner_destroy(scanner);
@@ -354,8 +342,8 @@ void QRcode_Decode(IplImage* warp_img_ROI)
 	imgout.release();
 }
 
+//set the threshold for the cvcanny fuction
 void on_trackbar( int a )
-
 {
 	if( img )
     	drawSquares( img, findSquares4( img, storage ) );
@@ -374,8 +362,7 @@ int main(int argc, char** argv)
 	IplImage* warp_img;
 	IplImage* warp_img_ROI;
 
-	// create window and a trackbar (slider) with parent "image" and set callback
-	// (the slider regulates upper threshold, passed to Canny edge detector)
+	// create window and a trackbar with parent 
 	cvNamedWindow( wndname, 1 );
 	cvCreateTrackbar( "canny thresh", wndname, &thresh, 1000, on_trackbar );
 
