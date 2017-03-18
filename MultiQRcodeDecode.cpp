@@ -18,11 +18,8 @@ CvMemStorage* storage = 0;
 CvPoint pt[4], pt_sorted[4];
 const char* wndname = "Square Detection";
 
-
-// helper function:
-// finds a cosine of angle between vectors
-// from pt0->pt1 and from pt0->pt2
-
+//finds a cosine of angle between vectors
+//from pt0->pt1 and from pt0->pt2
 double angle(CvPoint* pt1, CvPoint* pt2, CvPoint* pt0)
 {   
     double dx1 = pt1->x - pt0->x;   
@@ -33,8 +30,8 @@ double angle(CvPoint* pt1, CvPoint* pt2, CvPoint* pt0)
     return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2));
 }
  
-// returns sequence of squares detected on the image.
-// the sequence is stored in the specified memory storage
+//returns sequence of squares detected on the image.
+//the sequence is stored in the specified memory storage
 CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
 {
     CvSeq* contours;
@@ -48,40 +45,40 @@ CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
     CvSeq* result;
     double s, t;
 
-    // create empty sequence that will contain points -
-    // 4 points per square (the square's vertices)
+    //create empty sequence that will contain points -
+    //4 points per square (the square's vertices)
     CvSeq* squares = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvPoint), storage );
 
-    // select the maximum ROI in the image
-    // with the width and height divisible by 2
+    //select the maximum ROI in the image
+    //with the width and height divisible by 2
     cvSetImageROI( timg, cvRect( 0, 0, sz.width, sz.height )); 
 
-    // down-scale and upscale the image to filter out the noise
+    //down-scale and upscale the image to filter out the noise
     cvPyrDown( timg, pyr, 7 );
     cvPyrUp( pyr, timg, 7 );
     tgray = cvCreateImage( sz, 8, 1 );    
 
-    // find squares in every color plane of the image
+    //find squares in every color plane of the image
     for( c = 0; c < 3; c++ )
     {    
-        // extract the c-th color plane
+        //extract the c-th color plane
         cvSetImageCOI( timg, c+1 );
         cvCopy( timg, tgray, 0 ); 
         
-    	// try several threshold levels   
+    	//try several threshold levels   
      	for( l = 0; l < N; l++ )    
     	{        
-        	// hack: use Canny instead of zero threshold level.      
-       		// Canny helps to catch squares with gradient shading      
+        	//hack: use Canny instead of zero threshold level.      
+       		//Canny helps to catch squares with gradient shading      
       		if( l == 0 )      
       		{
 			     
-            	// apply Canny. Take the upper threshold from slider 
-            	// and set the lower to 0 (which forces edges merging)
+            	//apply Canny. Take the upper threshold from slider 
+            	//and set the lower to 0 (which forces edges merging)
             	cvCanny( tgray, gray, 0, thresh, 5 );  
                 
-            	// dilate canny output to remove potential   
-            	// holes between edge segments 
+            	//dilate canny output to remove potential   
+            	//holes between edge segments 
             	cvDilate( gray, gray, 0, 1 );        
             	cvShowImage("gray", gray); 
         	}    
@@ -89,29 +86,29 @@ CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
         else  
         {      
 
-    		// apply threshold if l!=0:
-            // tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0 
+    		//apply threshold if l!=0:
+            //tgray(x,y) = gray(x,y) < (l+1)*255/N ? 255 : 0 
             cvThreshold( tgray, gray, (l+1)*255/N, 255, CV_THRESH_BINARY ); 
         } 
 
-        // find contours and store them all as a list
+        //find contours and store them all as a list
         cvFindContours( gray, storage, &contours, sizeof(CvContour),  
         CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );  
 
-        // test each contour
+        //test each contour
         	while( contours )
             {
-            	// approximate contour with accuracy proportional
-                // to the contour perimeter
+            	//approximate contour with accuracy proportional
+                //to the contour perimeter
                 result = cvApproxPoly( contours, sizeof(CvContour), storage,
                 CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 );
                 
-                // square contours should have 4 vertices after approximation
-                // relatively large area (to filter out noisy contours)
-                // and be convex.
-                // Note: absolute value of an area is used because
-                // area may be positive or negative - in accordance with the
-                // contour orientation
+                //square contours should have 4 vertices after approximation
+                //relatively large area (to filter out noisy contours)
+                //and be convex.
+                //Note: absolute value of an area is used because
+                //area may be positive or negative - in accordance with the
+                //contour orientation
                 
                 if( result->total == 4 &&
                     fabs(cvContourArea(result,CV_WHOLE_SEQ)) > 1000 &&
@@ -121,8 +118,8 @@ CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
                     for( i = 0; i < 5; i++ )
                     {
 
-                    	// find minimum angle between joint 
-						// edges (maximum of cosine)
+                    	//find minimum angle between joint 
+						//edges (maximum of cosine)
                         if( i >= 2 )
 
                         {
@@ -134,20 +131,20 @@ CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
                         }
                     }
             
-                // if cosines of all angles are small 
-                // (all angles are ~90 degree) then write quandrange
-                // vertices to resultant sequence
+                //if cosines of all angles are small 
+                //(all angles are ~90 degree) then write quandrange
+                //vertices to resultant sequence
                 	if( s < 0.3 )
                         for( i = 0; i < 4; i++ ) 
                            cvSeqPush( squares, 
                                (CvPoint*)cvGetSeqElem( result, i ));
                 }
-                // take the next contour 
+                //take the next contour 
             	contours = contours->h_next;
             }
         }
     }
-    // release all the temporary images
+    //release all the temporary images
     cvReleaseImage( &gray );
     cvReleaseImage( &pyr );
     cvReleaseImage( &tgray );
@@ -156,23 +153,23 @@ CvSeq* findSquares4(IplImage* img, CvMemStorage* storage)
     return squares;
 }
 
-// the function draws all the squares in the image
+//the function draws all the squares in the image
 void drawSquares( IplImage* img, CvSeq* squares )
 {   
     CvSeqReader reader;
     IplImage* cpy = cvCloneImage( img );
     int i;
 
-    // initialize reader of the sequence
+    //initialize reader of the sequence
     cvStartReadSeq( squares, &reader, 0 );
     
-    // read 4 sequence elements at a time (all vertices of a square)
+    //read 4 sequence elements at a time (all vertices of a square)
     for( i = 0; i < squares->total; i += 4 )
     {
         CvPoint* rect = pt;
         int count = 4;
  
-        // read 4 vertices
+        //read 4 vertices
         memcpy( pt, reader.ptr, squares->elem_size );
         CV_NEXT_SEQ_ELEM( squares->elem_size, reader );
         
@@ -185,11 +182,11 @@ void drawSquares( IplImage* img, CvSeq* squares )
         memcpy( pt + 3, reader.ptr, squares->elem_size );
         CV_NEXT_SEQ_ELEM( squares->elem_size, reader );
 
-        // draw the square as a closed polyline
+        //draw the square as a closed polyline
         cvPolyLine( cpy, &rect, &count, 1, 1, CV_RGB(0,0,255), 2, CV_AA, 0 );
     }
 
-	// show the resultant image
+	//show the resultant image
 	cvShowImage( wndname, cpy );
 	cvReleaseImage( &cpy );
 }
@@ -249,7 +246,6 @@ void PointSort()
 	}		
 }
 
-
 //warp the perspective in order to crop the image that contains QRcode only
 IplImage* WarpPerspective(IplImage* input)
 {
@@ -272,7 +268,7 @@ IplImage* WarpPerspective(IplImage* input)
 	c2[3].x = 10;	c2[3].y = 100;
     
 	mmat = cvGetPerspectiveTransform(c1, c2, mmat);
-    cvWarpPerspective(input, output, mmat);
+	cvWarpPerspective(input, output, mmat);
 
 	cvShowImage("Original", input);
 	cvShowImage("Warp", output);
@@ -306,7 +302,6 @@ void QRcode_Decode(IplImage* warp_img_ROI)
 	Mat imgout;
 	cvtColor(img_ROI,img_ROI,CV_RGB2GRAY);
 	
-
 	imgout = img_ROI;
     
 	string qrcode_data;
@@ -335,9 +330,7 @@ void QRcode_Decode(IplImage* warp_img_ROI)
 		//put the decoded text at the up left corner of the QRcode
 		putText(cvarrToMat(img),qrcode_data,pt_sorted[0],FONT_HERSHEY_COMPLEX,1,Scalar(0,0,255),1,8,false);
     }    
-	//zbar_image_scanner_destroy(scanner);
 	zbar_image_free_data(image);
-	//zbar_image_destroy(image);
 	img_ROI.release();
 	imgout.release();
 }
