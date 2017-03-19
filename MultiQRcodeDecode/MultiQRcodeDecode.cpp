@@ -382,12 +382,17 @@ int main(int argc, char** argv)
 			QRcode_Decode(warp_img_ROI);
 		}
 		cvWaitKey(1);
+		
 		cvReleaseImage(&img);
 		cvReleaseImage(&warp_img);
 		cvReleaseImage(&warp_img_ROI);
 		cvReleaseImage(&img0);
 
 		cvReleaseMemStorage( &storage ); 		
+
+		char c = waitKey(1);
+		if(c == 27)
+			break;
 	}
 	return 0;
 }
